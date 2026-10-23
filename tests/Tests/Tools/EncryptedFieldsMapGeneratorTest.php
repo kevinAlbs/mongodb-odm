@@ -17,6 +17,7 @@ use Doctrine\Persistence\Mapping\AbstractClassMetadataFactory;
 use Doctrine\Persistence\Mapping\Driver\MappingDriver;
 use Doctrine\Persistence\Mapping\ReflectionService;
 use Documents\Bars\Bar;
+use Documents\Encryption\Citizen;
 use Documents\Encryption\Client;
 use Documents\Encryption\InvalidRootEncrypt;
 use Documents\Encryption\Patient;
@@ -74,6 +75,33 @@ class EncryptedFieldsMapGeneratorTest extends BaseTestCase
             [
                 'path' => 'clientCards',
                 'bsonType' => 'array',
+                'keyId' => null,
+            ],
+        ];
+
+        self::assertEquals(['fields' => $expected], $encryptedFieldsMap);
+    }
+
+    /**
+     * A root-level encrypted field combined with a single embedded document
+     * containing encrypted fields must yield all fields. The generator must
+     * not lose the root document's own field to a key collision when it
+     * recurses into the embedded document.
+     */
+    public function testGetEncryptionFieldsForClassWithRootFieldAndSingleEmbeddedDocument(): void
+    {
+        $factory            = new EncryptedFieldsMapGenerator($this->dm->getMetadataFactory());
+        $encryptedFieldsMap = $factory->getEncryptedFieldsForClass(Citizen::class);
+
+        $expected = [
+            [
+                'path' => 'nationalId',
+                'bsonType' => 'string',
+                'keyId' => null,
+            ],
+            [
+                'path' => 'phone.number',
+                'bsonType' => 'string',
                 'keyId' => null,
             ],
         ];
